@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhone 17 库存监控器</title>
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .monitoring {
+            color: #007AFF;
+        }
+
+        .available {
+            color: #34c759;
+        }
+
+        .unavailable {
+            color: #ff3b30;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .stop-btn {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .stop-btn:hover {
+            background: #ff5047;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 59, 48, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .config {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .config-item {
+            margin-bottom: 20px;
+        }
+
+        .config-item:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input, select {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            width: 100%;
+        }
+
+        input[type="number"] {
+            width: 120px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .product-item:hover {
+            background: #f0f0f5;
+            border-color: #667eea;
+        }
+
+        .product-item input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .product-item label {
+            margin: 0;
+            font-size: 12px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .product-price {
+            color: #666;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+
+        .log {
+            background: #1c1c1e;
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .log-entry:before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #666;
+        }
+
+        .log-entry.success:before {
+            color: #34c759;
+        }
+
+        .log-entry.error:before {
+            color: #ff3b30;
+        }
+
+        .log-entry.warning:before {
+            color: #ff9500;
+        }
+
+        .found-alert {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .pulse {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #34c759;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(52, 199, 89, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(52, 199, 89, 0);
+            }
+        }
+
+        .quick-select {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .quick-btn {
+            padding: 5px 10px;
+            font-size: 12px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #007AFF;
+            color: #004085;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .tutorial-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #b8d4ff;
+        }
+
+        .tutorial-section h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .tutorial-section ol, .tutorial-section ul {
+            margin-left: 20px;
+            line-height: 1.6;
+        }
+
+        .tutorial-section li {
+            margin-bottom: 5px;
+        }
+
+        .lang-switch {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .lang-btn {
+            padding: 5px 12px;
+            border: 1px solid #007AFF;
+            background: white;
+            color: #007AFF;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .lang-btn.active {
+            background: #007AFF;
+            color: white;
+        }
+
+        .tutorial-content {
+            display: none;
+        }
+
+        .tutorial-content.active {
+            display: block;
+        }
+
+        .email-config {
+            background: #f0f8ff;
+            border: 1px solid #4a90e2;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .email-config h4 {
+            color: #2c5282;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .email-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .email-row input[type="checkbox"] {
+            width: auto;
+        }
+
+        .email-row input[type="email"] {
+            flex: 1;
+        }
+
+        .email-status {
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .email-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .email-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .setup-link {
+            color: #4a90e2;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .email-test-btn {
+            background: #4a90e2;
+            color: white;
+            padding: 5px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .email-test-btn:hover {
+            background: #357abd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎁 iPhone 17 库存监控器</h1>
+        <div class="subtitle">实时监控 iPhone 17 Pro / Pro Max 全系列库存</div>
+
+        <div class="info-box">
+            <h3>ℹ️ 使用说明 / Instructions</h3>
+            <div class="lang-switch">
+                <button class="lang-btn active" onclick="switchLang('cn')">中文</button>
+                <button class="lang-btn" onclick="switchLang('en')">English</button>
+            </div>
+            
+            <div class="tutorial-content active" id="tutorial-cn">
+                <div class="tutorial-section">
+                    <h4>🔧 如何解决跨域问题（CORS）</h4>
+                    <ol>
+                        <li><strong>安装浏览器扩展</strong>
+                            <ul>
+                                <li>Chrome用户：搜索并安装 "Moesif CORS" 或 "Allow CORS" 扩展</li>
+                                <li>Firefox用户：搜索并安装 "CORS Everywhere" 扩展</li>
+                                <li>Edge用户：搜索并安装 "Allow CORS" 扩展</li>
+                            </ul>
+                        </li>
+                        <li><strong>启用扩展</strong>：点击浏览器工具栏的扩展图标，开启CORS功能</li>
+                        <li><strong>开始监控</strong>：选择你想监控的iPhone型号，点击"开始监控"按钮</li>
+                        <li><strong>注意</strong>：监控完成后，记得关闭CORS扩展以保证浏览安全</li>
+                    </ol>
+                    <h4>📧 邮件提醒设置（可选）</h4>
+                    <ol>
+                        <li>访问 <a href="https://www.emailjs.com/" target="_blank">EmailJS</a> 注册免费账号</li>
+                        <li>创建邮件服务（选择Gmail或其他）</li>
+                        <li>创建邮件模板，包含变量：{{product_name}}, {{store_info}}, {{time}}</li>
+                        <li>获取Service ID、Template ID和Public Key</li>
+                        <li>填入下方配置区域即可启用邮件提醒</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="tutorial-content" id="tutorial-en">
+                <div class="tutorial-section">
+                    <h4>🔧 How to Fix CORS Issues</h4>
+                    <ol>
+                        <li><strong>Install Browser Extension</strong>
+                            <ul>
+                                <li>Chrome: Search and install "Moesif CORS" or "Allow CORS" extension</li>
+                                <li>Firefox: Search and install "CORS Everywhere" extension</li>
+                                <li>Edge: Search and install "Allow CORS" extension</li>
+                            </ul>
+                        </li>
+                        <li><strong>Enable Extension</strong>: Click the extension icon in browser toolbar to enable CORS</li>
+                        <li><strong>Start Monitoring</strong>: Select iPhone models you want to monitor and click "Start Monitoring"</li>
+                        <li><strong>Note</strong>: Remember to disable CORS extension after monitoring for browsing safety</li>
+                    </ol>
+                    <h4>📧 Email Alert Setup (Optional)</h4>
+                    <ol>
+                        <li>Visit <a href="https://www.emailjs.com/" target="_blank">EmailJS</a> to create a free account</li>
+                        <li>Create an email service (choose Gmail or others)</li>
+                        <li>Create email template with variables: {{product_name}}, {{store_info}}, {{time}}</li>
+                        <li>Get your Service ID, Template ID and Public Key</li>
+                        <li>Enter them in the configuration below to enable email alerts</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <div class="status-label">监控状态 / Status</div>
+            <div class="status-value" id="status">
+                <span class="unavailable">未启动 / Not Started</span>
+            </div>
+        </div>
+
+        <div class="config">
+            <div class="config-item">
+                <label>检查间隔（秒）/ Check Interval (seconds):</label>
+                <input type="number" id="interval" value="30" min="10" max="300">
+            </div>
+            
+            <div class="config-item">
+                <label>所在地邮编 / ZIP Code:</label>
+                <input type="text" id="zipcode" value="90036" placeholder="输入邮政编码 / Enter ZIP code">
+            </div>
+
+            <div class="email-config">
+                <h4>📧 邮件提醒配置 / Email Alert Configuration</h4>
+                <div class="email-row">
+                    <input type="checkbox" id="enableEmail">
+                    <label for="enableEmail" style="margin: 0;">启用邮件提醒 / Enable Email Alerts</label>
+                </div>
+                <div id="emailSettings" style="display: none;">
+                    <div class="email-row">
+                        <input type="email" id="emailAddress" placeholder="接收邮箱 / Email address">
+                    </div>
+                    <div class="email-row">
+                        <input type="text" id="emailServiceId" placeholder="EmailJS Service ID (例: service_xxxxx)" style="flex: 1;">
+                    </div>
+                    <div class="email-row">
+                        <input type="text" id="emailTemplateId" placeholder="EmailJS Template ID (例: template_xxxxx)" style="flex: 1;">
+                    </div>
+                    <div class="email-row">
+                        <input type="text" id="emailPublicKey" placeholder="EmailJS Public Key" style="flex: 1;">
+                    </div>
+                    <div class="email-row">
+                        <button class="email-test-btn" onclick="testEmail()">测试邮件 / Test Email</button>
+                        <span id="emailStatus"></span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <span class="setup-link" onclick="showEmailJSGuide()">查看设置指南 / Setup Guide</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-item">
+                <label>选择要监控的产品 / Select Products to Monitor:</label>
+                <div class="quick-select">
+                    <button class="quick-btn" onclick="selectAll()">全选 / All</button>
+                    <button class="quick-btn" onclick="selectNone()">取消 / None</button>
+                    <button class="quick-btn" onclick="selectProMax256()">Pro Max 256GB</button>
+                    <button class="quick-btn" onclick="selectPro256()">Pro 256GB</button>
+                </div>
+                <div class="product-grid">
+                    <!-- iPhone 17 Pro Max -->
+                    <div class="product-item">
+                        <input type="checkbox" id="MFXJ4LL/A" value="MFXJ4LL/A" checked>
+                        <label for="MFXJ4LL/A">Pro Max 256GB 深蓝<span class="product-price">$1199</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MFXH4LL/A" value="MFXH4LL/A">
+                        <label for="MFXH4LL/A">Pro Max 256GB 橙色<span class="product-price">$1199</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MFXG4LL/A" value="MFXG4LL/A">
+                        <label for="MFXG4LL/A">Pro Max 256GB 银色<span class="product-price">$1199</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MFXM4LL/A" value="MFXM4LL/A">
+                        <label for="MFXM4LL/A">Pro Max 512GB 深蓝<span class="product-price">$1399</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MFXL4LL/A" value="MFXL4LL/A">
+                        <label for="MFXL4LL/A">Pro Max 512GB 橙色<span class="product-price">$1399</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MFXK4LL/A" value="MFXK4LL/A">
+                        <label for="MFXK4LL/A">Pro Max 512GB 银色<span class="product-price">$1399</span></label>
+                    </div>
+                    <!-- iPhone 17 Pro -->
+                    <div class="product-item">
+                        <input type="checkbox" id="MG7M4LL/A" value="MG7M4LL/A">
+                        <label for="MG7M4LL/A">Pro 256GB 深蓝<span class="product-price">$1099</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MG7L4LL/A" value="MG7L4LL/A">
+                        <label for="MG7L4LL/A">Pro 256GB 橙色<span class="product-price">$1099</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MG7K4LL/A" value="MG7K4LL/A">
+                        <label for="MG7K4LL/A">Pro 256GB 银色<span class="product-price">$1099</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MG7Q4LL/A" value="MG7Q4LL/A">
+                        <label for="MG7Q4LL/A">Pro 512GB 深蓝<span class="product-price">$1299</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MG7P4LL/A" value="MG7P4LL/A">
+                        <label for="MG7P4LL/A">Pro 512GB 橙色<span class="product-price">$1299</span></label>
+                    </div>
+                    <div class="product-item">
+                        <input type="checkbox" id="MG7N4LL/A" value="MG7N4LL/A">
+                        <label for="MG7N4LL/A">Pro 512GB 银色<span class="product-price">$1299</span></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="start-btn" id="startBtn" onclick="startMonitoring()">
+                开始监控 / Start Monitoring
+            </button>
+            <button class="stop-btn" id="stopBtn" onclick="stopMonitoring()" disabled>
+                停止监控 / Stop Monitoring
+            </button>
+        </div>
+
+        <div id="foundAlert" style="display: none;" class="found-alert">
+            🎉 发现库存！<span id="foundMessage"></span>
+        </div>
+
+        <div class="log" id="log">
+            <div class="log-entry">等待开始监控... / Waiting to start...</div>
+        </div>
+    </div>
+
+    <script>
+        let monitoringInterval;
+        let checkCount = 0;
+        let isMonitoring = false;
+        let emailJSInitialized = false;
+
+        // 产品SKU映射
+        const products = {
+            // iPhone 17 Pro Max
+            'MFXJ4LL/A': 'iPhone 17 Pro Max 256GB Deep Blue',
+            'MFXH4LL/A': 'iPhone 17 Pro Max 256GB Cosmic Orange',
+            'MFXG4LL/A': 'iPhone 17 Pro Max 256GB Silver',
+            'MFXM4LL/A': 'iPhone 17 Pro Max 512GB Deep Blue',
+            'MFXL4LL/A': 'iPhone 17 Pro Max 512GB Cosmic Orange',
+            'MFXK4LL/A': 'iPhone 17 Pro Max 512GB Silver',
+            // iPhone 17 Pro
+            'MG7M4LL/A': 'iPhone 17 Pro 256GB Deep Blue',
+            'MG7L4LL/A': 'iPhone 17 Pro 256GB Cosmic Orange',
+            'MG7K4LL/A': 'iPhone 17 Pro 256GB Silver',
+            'MG7Q4LL/A': 'iPhone 17 Pro 512GB Deep Blue',
+            'MG7P4LL/A': 'iPhone 17 Pro 512GB Cosmic Orange',
+            'MG7N4LL/A': 'iPhone 17 Pro 512GB Silver'
+        };
+
+        // 初始化EmailJS
+        function initEmailJS() {
+            const publicKey = document.getElementById('emailPublicKey').value;
+            if (publicKey && !emailJSInitialized) {
+                emailjs.init(publicKey);
+                emailJSInitialized = true;
+                return true;
+            }
+            return emailJSInitialized;
+        }
+
+        // 显示/隐藏邮件设置
+        document.getElementById('enableEmail').addEventListener('change', function(e) {
+            const emailSettings = document.getElementById('emailSettings');
+            if (e.target.checked) {
+                emailSettings.style.display = 'block';
+                // 从localStorage加载保存的设置
+                loadEmailSettings();
+            } else {
+                emailSettings.style.display = 'none';
+            }
+        });
+
+        // 保存邮件设置到localStorage
+        function saveEmailSettings() {
+            const settings = {
+                email: document.getElementById('emailAddress').value,
+                serviceId: document.getElementById('emailServiceId').value,
+                templateId: document.getElementById('emailTemplateId').value,
+                publicKey: document.getElementById('emailPublicKey').value
+            };
+            localStorage.setItem('emailSettings', JSON.stringify(settings));
+        }
+
+        // 加载邮件设置
+        function loadEmailSettings() {
+            const saved = localStorage.getItem('emailSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('emailAddress').value = settings.email || '';
+                document.getElementById('emailServiceId').value = settings.serviceId || '';
+                document.getElementById('emailTemplateId').value = settings.templateId || '';
+                document.getElementById('emailPublicKey').value = settings.publicKey || '';
+            }
+        }
+
+        // 发送邮件通知
+        async function sendEmailNotification(foundItems) {
+            if (!document.getElementById('enableEmail').checked) return;
+            
+            const email = document.getElementById('emailAddress').value;
+            const serviceId = document.getElementById('emailServiceId').value;
+            const templateId = document.getElementById('emailTemplateId').value;
+            
+            if (!email || !serviceId || !templateId) {
+                addLog('邮件配置不完整，无法发送邮件提醒 / Email configuration incomplete', 'warning');
+                return;
+            }
+
+            if (!initEmailJS()) {
+                addLog('EmailJS未初始化，请检查Public Key / EmailJS not initialized', 'error');
+                return;
+            }
+
+            // 保存设置
+            saveEmailSettings();
+
+            // 格式化商品和店铺信息
+            const productList = [...new Set(foundItems.map(item => item.product))].join(', ');
+            const storeInfo = foundItems.map(item => 
+                `${item.product} - ${item.store} (${item.distance})`
+            ).join('\n');
+
+            const templateParams = {
+                to_email: email,
+                product_name: productList,
+                store_info: storeInfo,
+                time: new Date().toLocaleString(),
+                count: foundItems.length
+            };
+
+            try {
+                await emailjs.send(serviceId, templateId, templateParams);
+                addLog('✅ 邮件提醒已发送 / Email alert sent successfully', 'success');
+            } catch (error) {
+                addLog(`❌ 邮件发送失败 / Email failed: ${error.text || error}`, 'error');
+            }
+        }
+
+        // 测试邮件
+        async function testEmail() {
+            const email = document.getElementById('emailAddress').value;
+            const serviceId = document.getElementById('emailServiceId').value;
+            const templateId = document.getElementById('emailTemplateId').value;
+            const publicKey = document.getElementById('emailPublicKey').value;
+
+            if (!email || !serviceId || !templateId || !publicKey) {
+                showEmailStatus('请填写所有配置项 / Please fill all fields', 'error');
+                return;
+            }
+
+            if (!initEmailJS()) {
+                showEmailStatus('初始化失败 / Initialization failed', 'error');
+                return;
+            }
+
+            const templateParams = {
+                to_email: email,
+                product_name: 'iPhone 17 Pro Max 256GB (测试)',
+                store_info: '这是一封测试邮件 / This is a test email',
+                time: new Date().toLocaleString(),
+                count: 1
+            };
+
+            try {
+                showEmailStatus('发送中... / Sending...', '');
+                await emailjs.send(serviceId, templateId, templateParams);
+                showEmailStatus('测试邮件发送成功！/ Test email sent!', 'success');
+                saveEmailSettings();
+            } catch (error) {
+                showEmailStatus(`发送失败: ${error.text || error}`, 'error');
+            }
+        }
+
+        // 显示邮件状态
+        function showEmailStatus(message, type) {
+            const status = document.getElementById('emailStatus');
+            status.textContent = message;
+            status.className = type ? `email-status ${type}` : 'email-status';
+        }
+
+        // 显示EmailJS设置指南
+        function showEmailJSGuide() {
+            const guide = `
+EmailJS 快速设置指南 / Quick Setup Guide:
+
+1. 访问 https://www.emailjs.com 注册账号
+2. 添加邮件服务 (Email Service):
+   - 点击 "Add New Service"
+   - 选择 Gmail 或其他邮件服务
+   - 按提示完成授权
+   - 记录 Service ID
+
+3. 创建邮件模板 (Email Template):
+   - 点击 "Email Templates" -> "Create New Template"
+   - 设置模板内容，使用以下变量:
+     Subject: iPhone 库存提醒 - {{product_name}}
+     Body: 
+     发现库存！Found Stock!
+     
+     产品 Products: {{product_name}}
+     店铺信息 Store Info:
+     {{store_info}}
+     
+     时间 Time: {{time}}
+     数量 Count: {{count}} 个库存
+   - 记录 Template ID
+
+4. 获取 Public Key:
+   - 点击 "Account" -> "API Keys"
+   - 复制 Public Key
+
+5. 将这些信息填入上方配置区域即可！
+`;
+            alert(guide);
+        }
+
+        // 语言切换
+        function switchLang(lang) {
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tutorial-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            if (lang === 'cn') {
+                document.querySelector('.lang-btn:first-child').classList.add('active');
+                document.getElementById('tutorial-cn').classList.add('active');
+            } else {
+                document.querySelector('.lang-btn:last-child').classList.add('active');
+                document.getElementById('tutorial-en').classList.add('active');
+            }
+        }
+
+        // 快速选择功能
+        function selectAll() {
+            document.querySelectorAll('.product-item input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        }
+
+        function selectNone() {
+            document.querySelectorAll('.product-item input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
+        function selectProMax256() {
+            selectNone();
+            ['MFXJ4LL/A', 'MFXH4LL/A', 'MFXG4LL/A'].forEach(id => {
+                const cb = document.getElementById(id);
+                if (cb) cb.checked = true;
+            });
+        }
+
+        function selectPro256() {
+            selectNone();
+            ['MG7M4LL/A', 'MG7L4LL/A', 'MG7K4LL/A'].forEach(id => {
+                const cb = document.getElementById(id);
+                if (cb) cb.checked = true;
+            });
+        }
+
+        // 请求浏览器通知权限
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        function addLog(message, type = '') {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            log.insertBefore(entry, log.firstChild);
+            
+            // 限制日志条数
+            while (log.children.length > 100) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function showNotification(message, stores) {
+            // 浏览器通知
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification('iPhone 库存提醒', {
+                    body: message,
+                    icon: '🎁',
+                    tag: 'iphone-stock',
+                    requireInteraction: true
+                });
+                
+                notification.onclick = function() {
+                    window.open('https://www.apple.com/shop/buy-iphone/iphone-17-pro', '_blank');
+                };
+            }
+            
+            // 声音提醒
+            playNotificationSound();
+            
+            // 页面内提醒
+            document.getElementById('foundMessage').textContent = message;
+            const alertDiv = document.getElementById('foundAlert');
+            alertDiv.style.display = 'block';
+        }
+
+        function playNotificationSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        async function checkStock() {
+            checkCount++;
+            
+            // 获取选中的产品
+            const selectedProducts = [];
+            document.querySelectorAll('.product-item input[type="checkbox"]:checked').forEach(cb => {
+                selectedProducts.push(cb.value);
+            });
+            
+            if (selectedProducts.length === 0) {
+                addLog('请至少选择一个产品进行监控 / Please select at least one product', 'error');
+                stopMonitoring();
+                return;
+            }
+            
+            const zipcode = document.getElementById('zipcode').value || '90036';
+            
+            addLog(`第 ${checkCount} 次检查，监控 ${selectedProducts.length} 个产品... / Check #${checkCount}, monitoring ${selectedProducts.length} products...`);
+            
+            try {
+                // 构建API URL
+                const partsParams = selectedProducts.map((sku, i) => `parts.${i}=${sku}`).join('&');
+                const apiUrl = `https://www.apple.com/shop/fulfillment-messages?pl=true&mts.0=regular&${partsParams}&location=${zipcode}`;
+                
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // 处理响应数据
+                processResponse(data, selectedProducts);
+                
+            } catch (error) {
+                addLog(`检查失败 / Check failed: ${error.message}`, 'error');
+                addLog('提示：请确保已启用CORS扩展 / Tip: Make sure CORS extension is enabled', 'warning');
+            }
+        }
+        
+        function processResponse(data, selectedProducts) {
+            const foundItems = [];
+            
+            // 检查响应格式
+            const stores = data?.body?.content?.pickupMessage?.stores || [];
+            
+            if (stores.length === 0) {
+                addLog('未收到店铺数据 / No store data received', 'warning');
+                return;
+            }
+            
+            stores.forEach(store => {
+                selectedProducts.forEach(sku => {
+                    const availability = store.partsAvailability?.[sku];
+                    
+                    if (availability && availability.pickupDisplay === "available") {
+                        const productName = products[sku] || sku;
+                        const storeName = store.storeName;
+                        const storeDistance = store.storeDistanceWithUnit || '';
+                        
+                        foundItems.push({ 
+                            product: productName, 
+                            store: storeName,
+                            distance: storeDistance,
+                            storeNumber: store.storeNumber 
+                        });
+                    }
+                });
+            });
+            
+            if (foundItems.length > 0) {
+                // 按产品分组显示
+                const groupedByProduct = {};
+                foundItems.forEach(item => {
+                    if (!groupedByProduct[item.product]) {
+                        groupedByProduct[item.product] = [];
+                    }
+                    groupedByProduct[item.product].push({
+                        store: item.store,
+                        distance: item.distance
+                    });
+                });
+                
+                addLog('🎉 发现库存！/ Stock Found!', 'success');
+                Object.entries(groupedByProduct).forEach(([product, stores]) => {
+                    addLog(`✅ ${product}`, 'success');
+                    stores.forEach(store => {
+                        addLog(`    📍 ${store.store} (${store.distance})`, 'success');
+                    });
+                });
+                
+                const message = `发现 ${foundItems.length} 个库存！快去购买！/ Found ${foundItems.length} stocks! Go buy now!`;
+                showNotification(message, foundItems);
+                
+                // 自动打开购买页面（可选）
+                if (confirm('发现库存！是否打开Apple Store页面？/ Stock found! Open Apple Store?')) {
+                    window.open('https://www.apple.com/shop/buy-iphone/iphone-17-pro', '_blank');
+                }
+            } else {
+                addLog(`检查了 ${stores.length} 家店铺，暂无库存 / Checked ${stores.length} stores, no stock available`);
+            }
+        }
+
+        function startMonitoring() {
+            if (isMonitoring) return;
+            
+            const selectedProducts = document.querySelectorAll('.product-item input[type="checkbox"]:checked');
+            if (selectedProducts.length === 0) {
+                alert('请至少选择一个产品进行监控 / Please select at least one product to monitor');
+                return;
+            }
+            
+            const interval = parseInt(document.getElementById('interval').value) * 1000;
+            
+            isMonitoring = true;
+            checkCount = 0;
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('status').innerHTML = '<span class="monitoring">监控中 / Monitoring<span class="pulse"></span></span>';
+            
+            const productNames = [];
+            selectedProducts.forEach(cb => {
+                productNames.push(products[cb.value] || cb.value);
+            });
+            
+            addLog(`开始监控以下产品 / Start monitoring:`, 'success');
+            productNames.forEach(name => {
+                addLog(`  • ${name}`, 'success');
+            });
+            
+            // 立即执行一次检查
+            checkStock();
+            
+            // 设置定时检查
+            monitoringInterval = setInterval(checkStock, interval);
+        }
+
+        function stopMonitoring() {
+            if (!isMonitoring) return;
+            
+            isMonitoring = false;
+            clearInterval(monitoringInterval);
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('status').innerHTML = '<span class="unavailable">已停止 / Stopped</span>';
+            
+            addLog('监控已停止 / Monitoring stopped', 'error');
+        }
+
+        // 页面关闭时清理
+        window.addEventListener('beforeunload', () => {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+        });
+
+        // 初始化提示
+        addLog('准备就绪。请先启用CORS扩展，然后选择产品开始监控 / Ready. Enable CORS extension first, then select products to start monitoring');
+    </script>
+</body>
+</html>
